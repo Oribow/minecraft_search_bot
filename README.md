@@ -1,4 +1,4 @@
-This is a **forge mod for minecraft 12.2.**
+This is a **forge mod for minecraft 1.12.2.**
 
 It will search through every newly loaded chunk for certain blocks indicating player build structures.
 If it finds instances of these blocks, it will send a telegram message including a screenshot.
