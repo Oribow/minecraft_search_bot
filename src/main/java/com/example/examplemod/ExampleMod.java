@@ -4,6 +4,7 @@ import com.pengrad.telegrambot.TelegramBot;
 import com.pengrad.telegrambot.UpdatesListener;
 import com.pengrad.telegrambot.model.Message;
 import com.pengrad.telegrambot.model.Update;
+import com.pengrad.telegrambot.request.BaseRequest;
 import com.pengrad.telegrambot.request.SendMessage;
 import com.pengrad.telegrambot.request.SendPhoto;
 import net.minecraft.block.Block;
@@ -40,11 +41,12 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.*;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Mod(modid = ExampleMod.MODID, name = ExampleMod.NAME, version = ExampleMod.VERSION, clientSideOnly = true)
 public class ExampleMod {
-    public static final String MODID = "searchBotWithNotifications";
-    public static final String NAME = "Search Bot with Telegram Notifications";
+    public static final String MODID = "examplemod";
+    public static final String NAME = "Example Mod";
     public static final String VERSION = "1.0";
 
     private static final Logger LOGGER = LogManager.getLogger();
@@ -98,38 +100,44 @@ public class ExampleMod {
         blocksToSearchFor.add("gold_block");
         blocksToSearchFor.add("gray_glazed_terracotta");
         blocksToSearchFor.add("gray_shulker_box");
-        blocksToSearchFor.add("end_portal_frame");
-        blocksToSearchFor.add("end_portal_frame");
-        blocksToSearchFor.add("end_portal_frame");
-        blocksToSearchFor.add("end_portal_frame");
-        blocksToSearchFor.add("end_portal_frame");
-        blocksToSearchFor.add("end_portal_frame");
-        blocksToSearchFor.add("end_portal_frame");
-        blocksToSearchFor.add("end_portal_frame");
-        blocksToSearchFor.add("end_portal_frame");
-        blocksToSearchFor.add("end_portal_frame");
-        blocksToSearchFor.add("end_portal_frame");
-        blocksToSearchFor.add("end_portal_frame");
-        blocksToSearchFor.add("end_portal_frame");
-        blocksToSearchFor.add("end_portal_frame");
-        blocksToSearchFor.add("end_portal_frame");
-        blocksToSearchFor.add("end_portal_frame");
-        blocksToSearchFor.add("end_portal_frame");
-        blocksToSearchFor.add("end_portal_frame");
-        blocksToSearchFor.add("end_portal_frame");
-        blocksToSearchFor.add("end_portal_frame");
-        blocksToSearchFor.add("end_portal_frame");
-        blocksToSearchFor.add("end_portal_frame");
-        blocksToSearchFor.add("end_portal_frame");
-        blocksToSearchFor.add("end_portal_frame");
-        blocksToSearchFor.add("end_portal_frame");
-        blocksToSearchFor.add("end_portal_frame");
-        blocksToSearchFor.add("end_portal_frame");
-        blocksToSearchFor.add("end_portal_frame");
-        blocksToSearchFor.add("end_portal_frame");
+        blocksToSearchFor.add("green_glazed_terracotta");
+        blocksToSearchFor.add("green_shulker_box");
+        blocksToSearchFor.add("hopper");
+        blocksToSearchFor.add("heavy_weighted_pressure_plate");
+        blocksToSearchFor.add("iron_block");
+        blocksToSearchFor.add("iron_door");
+        blocksToSearchFor.add("iron_trapdoor");
+        blocksToSearchFor.add("item_frame");
+        blocksToSearchFor.add("jukebox");
+        blocksToSearchFor.add("light_blue_glazed_terracotta");
+        blocksToSearchFor.add("light_blue_shulker_box");
+        blocksToSearchFor.add("lime_glazed_terracotta");
+        blocksToSearchFor.add("lime_shulker_box");
+        blocksToSearchFor.add("lit_pumpkin");
+        blocksToSearchFor.add("magenta_glazed_terracotta");
+        blocksToSearchFor.add("magenta_shulker_box");
+        blocksToSearchFor.add("noteblock");
+        blocksToSearchFor.add("observer");
+        blocksToSearchFor.add("orange_shulker_box");
+        blocksToSearchFor.add("painting");
+        blocksToSearchFor.add("pink_shulker_box");
+        blocksToSearchFor.add("piston");
+        blocksToSearchFor.add("purple_shulker_box");
+        blocksToSearchFor.add("red_shulker_box");
+        blocksToSearchFor.add("redstone_block");
+        blocksToSearchFor.add("redstone_lamp");
+        blocksToSearchFor.add("repeater");
+        blocksToSearchFor.add("sign");
+        blocksToSearchFor.add("silver_shulker_box");
+        blocksToSearchFor.add("sticky_piston");
+        blocksToSearchFor.add("tnt");
+        blocksToSearchFor.add("white_shulker_box");
+        blocksToSearchFor.add("yellow_shulker_box");
+        blocksToSearchFor.add("nether_portal");
+        blocksToSearchFor.add("portal");
 
 
-        lithium = new TelegramBot("YOUR TELEGRAM BOT API KEY HERE");
+        lithium = new TelegramBot("YOUR TELEGRAM API KEY HERE");
         lithium.setUpdatesListener(updates -> {
             for (Update update : updates) {
 
@@ -140,15 +148,15 @@ public class ExampleMod {
                         if (msg.text().startsWith(".")) {
                             sendMsg = true;
                             cmd = msg.text();
-                        } else if (msg.text().equals("pos")) {
+                        } else if (msg.text().toLowerCase().equals("pos")) {
                             EntityPlayerSP player = Minecraft.getMinecraft().player;
                             if (player != null)
                                 lithium.execute(new SendMessage(chatId, "Player Location: " + ((int) player.posX) + ", " + ((int) player.posY) + ", " + ((int) player.posZ)));
-                        } else if (msg.text().equals("screenshot")) {
+                        } else if (msg.text().toLowerCase().equals("s")) {
                             takeScreenshot = true;
                         }
                     } else {
-                        if (msg.text().equals("observe")) {
+                        if (msg.text().toLowerCase().equals("observe")) {
                             chatId = msg.chat().id();
                             hasChatId = true;
                             LOGGER.info("Will send updates to " + msg.chat().id().toString());
@@ -184,9 +192,20 @@ public class ExampleMod {
     }
 */
     private HashSet<Chunk> chunksToInspect = new HashSet<>();
+    private Queue<BaseRequest> executeQueue = new ArrayDeque<>();
+    private long lastSend = 0;
 
     @SubscribeEvent
     public void update(TickEvent.RenderTickEvent tick) {
+
+        if(System.currentTimeMillis() - lastSend > 1000){
+            lastSend = System.currentTimeMillis();
+            while(executeQueue.size() > 0)
+            {
+                lithium.execute(executeQueue.poll());
+            }
+        }
+
         if (sendMsg) {
             sendMsg = false;
             takeScreenshot = true;
@@ -202,7 +221,7 @@ public class ExampleMod {
                     ImageIO.write(image, "jpg", baos);
                     baos.flush();
                     byte[] imageInByte = baos.toByteArray();
-                    lithium.execute(new SendPhoto(chatId, imageInByte));
+                    executeQueue.add(new SendPhoto(chatId, imageInByte));
                 } catch (IOException e) {
                     e.printStackTrace();
                 } finally {
@@ -226,6 +245,8 @@ public class ExampleMod {
                 LOGGER.info(c.isEmpty());
                 chunksToInspect.remove(c);
                 iter = chunksToInspect.iterator();
+                if(Math.abs(c.x) < 500 && Math.abs(c.z) < 500)
+                    continue;
 
                 int totalFoundBlockCount = 0;
 
@@ -263,7 +284,7 @@ public class ExampleMod {
                 takeScreenshot = true;
 
                 if (hasChatId) {
-                    lithium.execute(new SendMessage(chatId, msg));
+                    executeQueue.add(new SendMessage(chatId, msg));
                 }
                 LOGGER.info(msg);
             }
